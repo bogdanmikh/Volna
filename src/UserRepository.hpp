@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include "model/User.hpp"
 
 // Create
 // Read
@@ -12,10 +13,9 @@
 class UserRepository final {
 public:
     ~UserRepository();
-    int addUser(std::string name, std::string password);
-    void updateName(int id, std::string newName);
-    void updatePassword(int id, std::string password);
-    void getInfoUser(int id);
+    int addUser(const User &user);
+    std::string getUser(const int &id);
+    void update(const User &user, int id);
     void deleteUser(int id);
 private:
     std::ifstream dataInput;
@@ -23,10 +23,10 @@ private:
 
     void openIn() ;
     void openOut();
-    std::vector<std::string> getAllLines();
-    std::string getInfo(std::string info);
+    std::vector<std::string> getLines();
     int getLastId();
     std::string getPassword(int id);
     bool findUser(int id);
     int getId(std::string infoUser);
+    int count();
 };

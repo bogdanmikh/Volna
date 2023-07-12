@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cassert>
 #include <string>
 #include "UserRepository.hpp"
@@ -13,130 +15,79 @@ UserRepository::~UserRepository() {
     }
 }
 
-int UserRepository::addUser(std::string name, std::string password) {
+int UserRepository::addUser(const User &user) {
     int lastId = getLastId() + 1;
     openOut();
     if (lastId == 1) {
-        dataOutput << lastId << '~' << name << '~' << password;
+        dataOutput << lastId << '~' << user.name << '~' << user.password;
     } else {
-        dataOutput << std::endl << lastId << '~' << name << '~' << password;
+        dataOutput << std::endl << lastId << '~' << user.name << '~' << user.password;
     }
     dataOutput.close();
     return lastId;
 }
 
-void UserRepository::updateName(int id, std::string newName) {
-    int size = getLastId();
-    if (!findUser(id)) {
-        std::cout << "User not found\n";
-        return;
-    }
-    std::vector<std::string> str = getAllLines();
-    std::string infoUser = str[id - 1];
-    int countSym = 0;
-    int startName = 0;
-    int endName = 0;
-    for (int i = 0; countSym != 2; i++) {
-        if (infoUser[i] == '~') {
-            countSym++;
-            if (countSym == 1) {
-                startName = i + 1;
-                continue;
-            }
-        }
-        if (countSym == 2) endName = i - 1;
-    }
-    std::string updatingInfo;
-    for (int i = 0; i < infoUser.size(); i++) {
-        if (i == startName) {
-            i = endName;
-            updatingInfo += newName;
-            continue;
-        }
-        updatingInfo.push_back(infoUser[i]);
-    }
-    std::ofstream clearFile(path, std::ios::out);
-    clearFile.close();
-    openOut();
-    for (int i = 0; i < size - 1; i++) {
-        if (i + 1 == id) {
-            dataOutput << updatingInfo << std::endl;
-            continue;
-        }
-        dataOutput << str[i] << std::endl;
-    }
-    dataOutput << str[size - 1];
-    dataOutput.close();
-}
-
-void UserRepository::updatePassword(int id, std::string password) {
-    int size = getLastId();
-    if (!findUser(id)) {
-        std::cout << "User not found\n";
-        return;
-    }
-    std::vector<std::string> str = getAllLines();
-    std::string infoUser = str[id - 1];
-    int sizePassword = 0;
-    for (int i = infoUser.size() - 1; infoUser[i] != '~'; i--) {
-        sizePassword++;
-    }
-    std::string updatingInfo;
-    int countSym = 0;
-    for (int i = 0; i < infoUser.size(); i++) {
-        if (infoUser[i] == '~') countSym++;
-        updatingInfo.push_back(infoUser[i]);
-        if (countSym == 2) {
-            updatingInfo += password;
-            break;
-        }
-    }
-    std::ofstream clearFile(path, std::ios::out);
-    clearFile.close();
-    openOut();
-    for (int i = 0; i < size - 1; i++) {
-        if (i + 1 == id) {
-            dataOutput << updatingInfo << std::endl;
-            continue;
-        }
-        dataOutput << str[i] << std::endl;
-    }
-    dataOutput << str[size - 1];
-    dataOutput.close();
-}
-
-void UserRepository::getInfoUser(int id) {
-    if (!findUser(id)) {
-        std::cout << "User not found\n";
-        return;
-    }
-    std::string infoUser;
+std::string UserRepository::getUser(const int &id) {
+    std::string str;
     openIn();
-    std::getline(dataInput, infoUser);
-    for (int i = 1; getId(infoUser) != id; i++) {
-        std::getline(dataInput, infoUser);
+    while (dataInput) {
+        std::getline(dataInput, str);
+        if (getId(str) == id) {
+            dataInput.close();
+            return str;
+        }
     }
     dataInput.close();
-    std::cout << getInfo(infoUser) << std::endl;
+    return "-1";
+}
+
+void UserRepository::update(const User &user, int id) {
+    std::string infoUser = getUser(id);
+    if (infoUser == "-1") {
+        std::cout << "User not found\n";
+        return;
+    }
+    std::string updatingInfo = std::to_string(id)  + "~" + user.name + "~" + user.password;
+    int size = count();
+    std::vector<std::string> str = getLines();
+    std::ofstream clearFile(path, std::ios::out);
+    clearFile.close();
+    openOut();
+    for (int i = 0; i < size - 1; i++) {
+        if (getId(str[i]) == id) {
+            dataOutput << updatingInfo << std::endl;
+            continue;
+        }
+        dataOutput << str[i] << std::endl;
+    }
+    if (size == id) {
+        dataOutput << updatingInfo;
+    } else {
+        dataOutput << str[size - 1];
+    }
+    dataOutput.close();
 }
 
 void UserRepository::deleteUser(int id) {
-    int size = getLastId();
-    if (!findUser(id)) {
+    std::string infoUser = getUser(id);
+    if (infoUser == "-1") {
         std::cout << "User not found\n";
         return;
     }
-    std::vector<std::string> str = getAllLines();
+    int size = count();
+    std::vector<std::string> str = getLines();
     std::ofstream clearFile(path, std::ios::out);
     clearFile.close();
     openOut();
     for (int i = 0; i < size - 1; i++) {
-        if (i + 1 == id) {
+        if (getId(str[i]) == id) {
             continue;
         }
         dataOutput << str[i] << std::endl;
     }
-    dataOutput << str[size - 1];
+    if (getId(str[size - 1]) != id) {
+        dataOutput << str[size - 1];
+    }
     dataOutput.close();
 }
 
@@ -150,34 +101,18 @@ void UserRepository::openOut() {
     assert(dataOutput.is_open());
 }
 
-std::vector<std::string> UserRepository::getAllLines() {
-    int size = getLastId();
-    std::vector<std::string> vecStr(size);
+std::vector<std::string> UserRepository::getLines() {
+    std::vector<std::string> vecStr;
     openIn();
-    for (int i = 0; i < size; i++) {
-        std::getline(dataInput, vecStr[i]);
+    for (int i = 0; dataInput; i++) {
+        std::string str;
+        std::getline(dataInput, str);
+        if (!str.empty()) {
+            vecStr.push_back(str);
+        }
     }
     dataInput.close();
     return vecStr;
-}
-
-std::string UserRepository::getInfo(std::string info) {
-    std::string resultInfo;
-    resultInfo = "Id: ";
-    bool k = true;
-    for (int i = 0; i < info.size(); i++) {
-        if (info[i] == '~') {
-            if (k) {
-                resultInfo += " Name: ";
-                k = false;
-            } else {
-                resultInfo += " Password: ";
-            }
-            continue;
-        }
-        resultInfo.push_back(info[i]);
-    }
-    return resultInfo;
 }
 
 int UserRepository::getLastId() {
@@ -215,28 +150,21 @@ std::string UserRepository::getPassword(int id) {
     return passwordUser;
 }
 
-bool UserRepository::findUser(int id) {
-    if (id > getLastId()) {
-        return false;
-    }
-    std::string str;
-    openIn();
-    std::getline(dataInput, str);
-    while (getId(str) <= id) {
-        if (getId(str) == id) {
-            dataInput.close();
-            return true;
-        }
-        std::getline(dataInput, str);
-    }
-    dataInput.close();
-    return false;
-}
-
 int UserRepository::getId(std::string infoUser) {
     std::string id;
     for (int i = 0; infoUser[i] != '~'; i++) {
         id.push_back(infoUser[i]);
     }
     return std::stoi(infoUser);
+}
+
+int UserRepository::count() {
+    int i = 0;
+    std::string str;
+    openIn();
+    while (std::getline(dataInput, str)) {
+        i++;
+    }
+    dataInput.close();
+    return i;
 }
