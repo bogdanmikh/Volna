@@ -2,11 +2,11 @@
 
 #include <cassert>
 #include <string>
-#include "UserRepository.hpp"
+#include "UserRepositoryCsvImpl.hpp"
 
 #define path "../Database.csv"
 
-UserRepository::~UserRepository() {
+UserRepositoryCsvImpl::~UserRepositoryCsvImpl() {
     if (dataInput.is_open()) {
         dataInput.close();
     }
@@ -15,7 +15,7 @@ UserRepository::~UserRepository() {
     }
 }
 
-int UserRepository::addUser(const User &user) {
+int UserRepositoryCsvImpl::save(const User &user) {
     int lastId = getLastId() + 1;
     openOut();
     if (lastId == 1) {
@@ -27,23 +27,34 @@ int UserRepository::addUser(const User &user) {
     return lastId;
 }
 
-std::string UserRepository::getUser(const int &id) {
+std::optional<User> UserRepositoryCsvImpl::getById(int id) {
     std::string str;
     openIn();
     while (dataInput) {
         std::getline(dataInput, str);
         if (getId(str) == id) {
             dataInput.close();
-            return str;
+            std::string name, password;
+            int l = 0;
+            for (int i = 0; i < str.size(); i++) {
+                if (str[i] != '~') {
+                    l++;
+                    continue;
+                }
+                if (l == 1) name.push_back(str[i]);
+                else if (l == 2) name.push_back(str[i]);
+            }
+            User user(name, password);
+            return user;
         }
     }
     dataInput.close();
-    return "-1";
+    return {};
 }
 
-void UserRepository::update(const User &user, int id) {
-    std::string infoUser = getUser(id);
-    if (infoUser == "-1") {
+void UserRepositoryCsvImpl::update(int id, const User &user) {
+    std::optional<User> infoUser = getById(id);
+    if (!infoUser) {
         std::cout << "User not found\n";
         return;
     }
@@ -68,9 +79,9 @@ void UserRepository::update(const User &user, int id) {
     dataOutput.close();
 }
 
-void UserRepository::deleteUser(int id) {
-    std::string infoUser = getUser(id);
-    if (infoUser == "-1") {
+void UserRepositoryCsvImpl::deleteById(int id) {
+    std::optional<User> infoUser = getById(id);
+    if (!infoUser) {
         std::cout << "User not found\n";
         return;
     }
@@ -79,29 +90,53 @@ void UserRepository::deleteUser(int id) {
     std::ofstream clearFile(path, std::ios::out);
     clearFile.close();
     openOut();
-    for (int i = 0; i < size - 1; i++) {
+    if (size == 1) {
+        dataOutput.close();
+        return;
+    } else if (size == 2) {
+        if (id == 1) dataOutput << str[1];
+        else dataOutput << str[0];
+        dataOutput.close();
+        return;
+    }
+
+    for (int i = 0; i < size - 2; i++) {
         if (getId(str[i]) == id) {
             continue;
         }
         dataOutput << str[i] << std::endl;
     }
+    dataOutput << str[size - 2];
     if (getId(str[size - 1]) != id) {
-        dataOutput << str[size - 1];
+        dataOutput << std::endl << str[size - 1];
     }
     dataOutput.close();
 }
 
-void UserRepository::openIn() {
+std::vector<User> UserRepositoryCsvImpl::getAll() {
+    std::vector<User> allUsers;
+    std::string str;
+    openIn();
+    while (dataInput) {
+        dataInput >> str;
+        allUsers.push_back(getUser(str));
+    }
+    dataInput.close();
+    return allUsers;
+}
+
+
+void UserRepositoryCsvImpl::openIn() {
     dataInput.open(path);
     assert(dataInput.is_open());
 }
 
-void UserRepository::openOut() {
+void UserRepositoryCsvImpl::openOut() {
     dataOutput.open(path, std::ofstream::app);
     assert(dataOutput.is_open());
 }
 
-std::vector<std::string> UserRepository::getLines() {
+std::vector<std::string> UserRepositoryCsvImpl::getLines() {
     std::vector<std::string> vecStr;
     openIn();
     for (int i = 0; dataInput; i++) {
@@ -115,7 +150,7 @@ std::vector<std::string> UserRepository::getLines() {
     return vecStr;
 }
 
-int UserRepository::getLastId() {
+int UserRepositoryCsvImpl::getLastId() {
     openIn();
     std::string lastLine;
     while (dataInput) {
@@ -132,25 +167,26 @@ int UserRepository::getLastId() {
     return std::stoi(id);
 }
 
-std::string UserRepository::getPassword(int id) {
-    if (id >= getLastId()) {
-        return "-1";
+User UserRepositoryCsvImpl::getUser(std::string info) {
+    std::string id, name, password;
+    int k = 0;
+    for (int i = 0; i < info.size(); i++) {
+        if (info[i] == '~') {
+            k++;
+            continue;
+        }
+        if (k == 0) {
+            id.push_back(info[i]);
+        } else if (k == 1) {
+            name.push_back(info[i]);
+        } else if (k == 2) {
+            password.push_back(info[i]);
+        }
     }
-    std::string infoUser;
-    openIn();
-    for (int i = 1; i <= id; i++) {
-        std::getline(dataInput, infoUser);
-    }
-    dataInput.close();
-    std::string passwordUser;
-    for (int i = infoUser.size(); infoUser[i] != '~'; i--) {
-        passwordUser.push_back(infoUser[i]);
-    }
-    std::reverse(passwordUser.begin(), passwordUser.end());
-    return passwordUser;
+    return {static_cast<uint32_t>(std::stoi(id)), name, password};
 }
 
-int UserRepository::getId(std::string infoUser) {
+int UserRepositoryCsvImpl::getId(std::string infoUser) {
     std::string id;
     for (int i = 0; infoUser[i] != '~'; i++) {
         id.push_back(infoUser[i]);
@@ -158,7 +194,7 @@ int UserRepository::getId(std::string infoUser) {
     return std::stoi(infoUser);
 }
 
-int UserRepository::count() {
+int UserRepositoryCsvImpl::count() {
     int i = 0;
     std::string str;
     openIn();

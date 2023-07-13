@@ -19,4 +19,9 @@ struct User final {
             : id(0)
             , name(name)
             , password(password) {}
+
+    friend std::ostream& operator << (std::ostream& stream, const User& user) {
+        stream << "id: " << user.id << ", name: " << user.name << ", password: " << user.password;
+        return stream;
+    }
 };
