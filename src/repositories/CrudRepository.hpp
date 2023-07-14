@@ -3,11 +3,13 @@
 //
 #pragma once
 
+#include <vector>
 #include <optional>
 
 template <typename T, typename K>
 class CrudRepository {
 public:
+    virtual ~CrudRepository() = default;
     virtual K save(const T& item) = 0;
     virtual std::optional<T> getById(K id) = 0;
     virtual void update(K id, const T& item) = 0;

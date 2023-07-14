@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <string>
 #include "UserRepositoryCsvImpl.hpp"
 
 #define path "../Database.csv"
@@ -15,8 +13,8 @@ UserRepositoryCsvImpl::~UserRepositoryCsvImpl() {
     }
 }
 
-int UserRepositoryCsvImpl::save(const User &user) {
-    int lastId = getLastId() + 1;
+uint32_t UserRepositoryCsvImpl::save(const User &user) {
+    uint32_t lastId = getLastId() + 1;
     openOut();
     if (lastId == 1) {
         dataOutput << lastId << '~' << user.name << '~' << user.password;
@@ -27,24 +25,25 @@ int UserRepositoryCsvImpl::save(const User &user) {
     return lastId;
 }
 
-std::optional<User> UserRepositoryCsvImpl::getById(int id) {
-    std::string str;
+std::optional<User> UserRepositoryCsvImpl::getById(uint32_t id) {
     openIn();
+    std::string str;
     while (dataInput) {
         std::getline(dataInput, str);
+        if (str.empty()) break;
         if (getId(str) == id) {
             dataInput.close();
             std::string name, password;
             int l = 0;
             for (int i = 0; i < str.size(); i++) {
-                if (str[i] != '~') {
+                if (str[i] == '~') {
                     l++;
                     continue;
                 }
                 if (l == 1) name.push_back(str[i]);
-                else if (l == 2) name.push_back(str[i]);
+                else if (l == 2) password.push_back(str[i]);
             }
-            User user(name, password);
+            User user(id, name, password);
             return user;
         }
     }
@@ -52,7 +51,7 @@ std::optional<User> UserRepositoryCsvImpl::getById(int id) {
     return {};
 }
 
-void UserRepositoryCsvImpl::update(int id, const User &user) {
+void UserRepositoryCsvImpl::update(uint32_t id, const User &user) {
     std::optional<User> infoUser = getById(id);
     if (!infoUser) {
         std::cout << "User not found\n";
@@ -71,7 +70,7 @@ void UserRepositoryCsvImpl::update(int id, const User &user) {
         }
         dataOutput << str[i] << std::endl;
     }
-    if (size == id) {
+    if (getId(str[size - 1]) == id) {
         dataOutput << updatingInfo;
     } else {
         dataOutput << str[size - 1];
@@ -79,7 +78,7 @@ void UserRepositoryCsvImpl::update(int id, const User &user) {
     dataOutput.close();
 }
 
-void UserRepositoryCsvImpl::deleteById(int id) {
+void UserRepositoryCsvImpl::deleteById(uint32_t id) {
     std::optional<User> infoUser = getById(id);
     if (!infoUser) {
         std::cout << "User not found\n";
@@ -150,7 +149,7 @@ std::vector<std::string> UserRepositoryCsvImpl::getLines() {
     return vecStr;
 }
 
-int UserRepositoryCsvImpl::getLastId() {
+uint32_t UserRepositoryCsvImpl::getLastId() {
     openIn();
     std::string lastLine;
     while (dataInput) {
@@ -164,34 +163,34 @@ int UserRepositoryCsvImpl::getLastId() {
     for (int i = 0; lastLine[i] != '~'; i++) {
         id.push_back(lastLine[i]);
     }
-    return std::stoi(id);
+    return static_cast<uint32_t>(std::stoi(id));
 }
 
 User UserRepositoryCsvImpl::getUser(std::string info) {
     std::string id, name, password;
     int k = 0;
-    for (int i = 0; i < info.size(); i++) {
-        if (info[i] == '~') {
+    for (char i : info) {
+        if (i == '~') {
             k++;
             continue;
         }
         if (k == 0) {
-            id.push_back(info[i]);
+            id.push_back(i);
         } else if (k == 1) {
-            name.push_back(info[i]);
+            name.push_back(i);
         } else if (k == 2) {
-            password.push_back(info[i]);
+            password.push_back(i);
         }
     }
     return {static_cast<uint32_t>(std::stoi(id)), name, password};
 }
 
-int UserRepositoryCsvImpl::getId(std::string infoUser) {
+uint32_t UserRepositoryCsvImpl::getId(std::string infoUser) {
     std::string id;
     for (int i = 0; infoUser[i] != '~'; i++) {
         id.push_back(infoUser[i]);
     }
-    return std::stoi(infoUser);
+    return static_cast<uint32_t>(std::stoi(id));
 }
 
 int UserRepositoryCsvImpl::count() {

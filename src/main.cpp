@@ -1,8 +1,10 @@
-#include "UserRepositoryCsvImpl.hpp"
-#include <stdlib.h>
+#include "repositories/CrudRepository.hpp"
+#include "repositories/UserRepositoryCsvImpl.hpp"
+
+#include <cstdlib>
 #include <ctime>
 #include <sstream>
-#include "CrudRepository.hpp"
+
 
 User generateUser() {
     std::string name;
@@ -23,12 +25,20 @@ User generateUser() {
 }
 
 int main() {
-    UserRepositoryCsvImpl data;
-    CrudRepository<User, int>* repository;
+    UserRepository* repository;
     repository = new UserRepositoryCsvImpl;
 
-    auto users = repository->getAll();
-    for(auto& user: users) {
-        std::cout << user << std::endl;
-    }
+    uint32_t id = repository->save({"Arduino", "JavaIsMyLove;)"});
+    assert(repository->getById(id)->name == "Arduino");
+    assert(repository->getById(id)->password == "JavaIsMyLove;)");
+    repository->update(id, {"Arduino", "JavaIsMyLove:("});
+    assert(repository->getById(id)->name == "Arduino");
+    assert(repository->getById(id)->password == "JavaIsMyLove:(");
+    //std::optional<User> user = repository->getById(1);
+//    if (user) {
+//        std::cout << user->id << ' ' << user->name << ' ' << user->password;
+//    }
+    repository->deleteById(1);
+    assert(!repository->getById(1).has_value());
+    delete repository;
 }
