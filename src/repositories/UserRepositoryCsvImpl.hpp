@@ -29,5 +29,5 @@ private:
     uint32_t getLastId();
     User getUser(std::string info);
     uint32_t getId(std::string infoUser);
-    int count();
+    int32_t count();
 };

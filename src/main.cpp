@@ -1,5 +1,5 @@
 #include "repositories/CrudRepository.hpp"
-#include "repositories/UserRepositoryCsvImpl.hpp"
+#include "repositories/UserRepositoryBinImpl.hpp"
 
 #include <cstdlib>
 #include <ctime>
@@ -26,19 +26,12 @@ User generateUser() {
 
 int main() {
     UserRepository* repository;
-    repository = new UserRepositoryCsvImpl;
-
-    uint32_t id = repository->save({"Arduino", "JavaIsMyLove;)"});
-    assert(repository->getById(id)->name == "Arduino");
-    assert(repository->getById(id)->password == "JavaIsMyLove;)");
-    repository->update(id, {"Arduino", "JavaIsMyLove:("});
-    assert(repository->getById(id)->name == "Arduino");
-    assert(repository->getById(id)->password == "JavaIsMyLove:(");
-    //std::optional<User> user = repository->getById(1);
-//    if (user) {
-//        std::cout << user->id << ' ' << user->name << ' ' << user->password;
-//    }
-    repository->deleteById(1);
-    assert(!repository->getById(1).has_value());
+    repository = new UserRepositoryBinImpl;
+    repository->save({"Arture", "Aleeee"});
+    std::optional<User> user = repository->getById(1);
+    if (user.has_value()) {
+        std::cout << user->id << " " << user->name << " " << user->password;
+    }
     delete repository;
+
 }

@@ -2,7 +2,7 @@
 
 #include "UserRepositoryCsvImpl.hpp"
 
-#define path "../Database.csv"
+#define path "../bin/Database.csv"
 
 UserRepositoryCsvImpl::~UserRepositoryCsvImpl() {
     if (dataInput.is_open()) {
