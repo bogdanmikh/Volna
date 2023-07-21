@@ -40,24 +40,30 @@ std::optional<User> UserRepositoryBinImpl::getById(uint32_t id) {
 
 void UserRepositoryBinImpl::update(uint32_t id, const User &item) {
     if (id > lastId) return;
-    for (int i = 0; i < data.size() && data[i].id <= id; i++) {
-        if (data[i].id == id) {
-            data[i] = item;
-            data[i].id = id;
+    int32_t left = 0, right = data.size() - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (data[mid].id == id) {
+            data[mid] = item;
+            data[mid].id = id;
             return;
         }
+        if (data[mid].id > id) right = mid - 1;
+        else left = mid + 1;
     }
 }
 
 void UserRepositoryBinImpl::deleteById(uint32_t id) {
-    if (id > lastId) {
-        return;
-    }
-    for (int i = 0; i < data.size(); i++) {
-        if (data[i].id == id) {
-            data.erase(data.begin() + i);
+    if (id > lastId) return;
+    int32_t left = 0, right = data.size() - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (data[mid].id == id) {
+            data.erase(data.begin() + mid);
             return;
         }
+        if (data[mid].id > id) right = mid - 1;
+        else left = mid + 1;
     }
 }
 
@@ -66,9 +72,7 @@ std::vector<User> UserRepositoryBinImpl::getAll() {
 }
 
 void UserRepositoryBinImpl::deleteAll() {
-    std::ofstream clear(path, std::ios::out | std::ofstream::trunc);
-    assert(clear.is_open());
-    clear.close();
+    data.clear();
 }
 
 void UserRepositoryBinImpl::openIn() {
@@ -105,7 +109,6 @@ void UserRepositoryBinImpl::read() {
 
 
 void UserRepositoryBinImpl::saveAll() {
-    deleteAll();
     openOut();
     uint32_t count = 0;
     if (!data.empty()) {
