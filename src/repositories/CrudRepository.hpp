@@ -15,4 +15,5 @@ public:
     virtual void update(K id, const T& item) = 0;
     virtual void deleteById(K id) = 0;
     virtual std::vector<T> getAll() = 0;
+    virtual void deleteAll() = 0;
 };

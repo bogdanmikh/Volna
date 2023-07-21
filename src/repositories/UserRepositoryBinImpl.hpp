@@ -13,10 +13,12 @@ public:
     void update(uint32_t id, const User &item) override;
     void deleteById(uint32_t id) override;
     std::vector<User> getAll() override;
+    void deleteAll() override;
 private:
     std::vector<User> data;
     std::ifstream dataInput;
     std::ofstream dataOutput;
+    uint32_t lastId;
 
     void openIn();
     void openOut();

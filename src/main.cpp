@@ -27,11 +27,16 @@ User generateUser() {
 int main() {
     UserRepository* repository;
     repository = new UserRepositoryBinImpl;
-    repository->save({"Arture", "Aleeee"});
+//    repository->save({"Bogdan", "Huligan123"});
+//    repository->save({"Artur", "Alee123"});
+//    repository->save({"Artuino", "Artuino"});
+//    repository->save({"Misha", "IOS12"});
+    repository->update(1, {"Bogdan", "Huligan123"});
     std::optional<User> user = repository->getById(1);
     if (user.has_value()) {
         std::cout << user->id << " " << user->name << " " << user->password;
     }
+//    repository->deleteAll();
     delete repository;
-
 }
+

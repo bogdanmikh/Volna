@@ -8,8 +8,8 @@
 #include "UserRepositoryBinImpl.hpp"
 
 #define path "../bin/Database.bin"
-#define lenghtName 7
-#define lenghtPassword 7
+#define lenghtName 11
+#define lenghtPassword 11
 
 UserRepositoryBinImpl::UserRepositoryBinImpl() {
     read();
@@ -21,26 +21,26 @@ UserRepositoryBinImpl::~UserRepositoryBinImpl() {
 
 uint32_t UserRepositoryBinImpl::save(const User &item) {
     User userCopy = item;
-    uint32_t lastId = 1;
-    if (!data.empty()) {
-        lastId = data[data.size() - 1].id + 1;
-    }
-    userCopy.id = lastId;
+    userCopy.id = ++lastId;
     data.emplace_back(userCopy);
     return lastId;
 }
 
 std::optional<User> UserRepositoryBinImpl::getById(uint32_t id) {
-    if (id > data[data.size() - 1].id) return {};
-    for (int i = 0; i < data.size() && data[i].id <= id; i++) {
-        if (data[i].id == id) return data[i];
+    if (id > lastId) return {};
+    int32_t left = 0, right = data.size() - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (data[mid].id == id) return data[mid];
+        if (data[mid].id > id) right = mid - 1;
+        else left = mid + 1;
     }
     return {};
 }
 
 void UserRepositoryBinImpl::update(uint32_t id, const User &item) {
-    if (id > data[data.size() - 1].id) return;
-    for (int i = 0; i < data.size() && data[i].id < id; i++) {
+    if (id > lastId) return;
+    for (int i = 0; i < data.size() && data[i].id <= id; i++) {
         if (data[i].id == id) {
             data[i] = item;
             data[i].id = id;
@@ -50,7 +50,7 @@ void UserRepositoryBinImpl::update(uint32_t id, const User &item) {
 }
 
 void UserRepositoryBinImpl::deleteById(uint32_t id) {
-    if (id > data[data.size() - 1].id) {
+    if (id > lastId) {
         return;
     }
     for (int i = 0; i < data.size(); i++) {
@@ -63,6 +63,12 @@ void UserRepositoryBinImpl::deleteById(uint32_t id) {
 
 std::vector<User> UserRepositoryBinImpl::getAll() {
     return data;
+}
+
+void UserRepositoryBinImpl::deleteAll() {
+    std::ofstream clear(path, std::ios::out | std::ofstream::trunc);
+    assert(clear.is_open());
+    clear.close();
 }
 
 void UserRepositoryBinImpl::openIn() {
@@ -80,9 +86,10 @@ void UserRepositoryBinImpl::read() {
     uint32_t count;
     if (!dataInput.read(reinterpret_cast<char *>(&count), sizeof(uint32_t))) {
         dataInput.close();
+        lastId = 0;
         return;
     }
-    dataInput.seekg(8);
+    dataInput.read(reinterpret_cast<char *>(&lastId), sizeof(uint32_t));
     for (int i = 0; i < count; i++) {
         uint32_t id;
         dataInput.read(reinterpret_cast<char *>(&id), 4);
@@ -98,15 +105,11 @@ void UserRepositoryBinImpl::read() {
 
 
 void UserRepositoryBinImpl::saveAll() {
-    std::ofstream clear(path, std::ios::out);
-    assert(clear.is_open());
-    clear.close();
+    deleteAll();
     openOut();
     uint32_t count = 0;
-    uint32_t lastId = 0;
     if (!data.empty()) {
         count = data.size();
-        lastId = data[data.size() - 1].id;
     }
     dataOutput.write(reinterpret_cast<const char *>(&count), 4);
     dataOutput.write(reinterpret_cast<const char *>(&lastId), 4);
